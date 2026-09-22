@@ -50,6 +50,57 @@ function init() {
     });
 }
 
+const walls = [];
+
+function createWalls(grid) {
+    const walls = [];
+
+    const h = grid.length;
+    const w = grid[0].length;
+
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            if (grid[y][x] !== 1) continue;
+
+            // 上
+            if (y === 0 || grid[y - 1][x] === 0) {
+                walls.push([
+                    [x, y],
+                    [x + 1, y]
+                ]);
+            }
+
+            // 下
+            if (y === h - 1 || grid[y + 1][x] === 0) {
+                walls.push([
+                    [x, y + 1],
+                    [x + 1, y + 1]
+                ]);
+            }
+
+            // 左
+            if (x === 0 || grid[y][x - 1] === 0) {
+                walls.push([
+                    [x, y],
+                    [x, y + 1]
+                ]);
+            }
+
+            // 右
+            if (x === w - 1 || grid[y][x + 1] === 0) {
+                walls.push([
+                    [x + 1, y],
+                    [x + 1, y + 1]
+                ]);
+            }
+        }
+    }
+
+    return walls;
+}
+
+const walls = createWalls(grid);
+
 function movePlayer(dx, dy) {
     const start = {
         x: monkey.position.x,
