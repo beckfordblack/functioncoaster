@@ -133,7 +133,162 @@ function findCollision(start, end, radius) {
     return nearest;
 }
 
+function sweepCircle(start, end, radius, a, b) {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
 
+    let best = null;
+
+    function hit(t, x, y, nx, ny) {
+        if (t < 0 || t > 1) return;
+
+        if (!best || t < best.t) {
+            best = {
+                x, y, t, nx, ny
+            };
+        }
+    }
+
+    // 横壁
+    if (a[1] === b[1]) {
+        const wallY = a[1];
+        const minX = Math.min(a[0], b[0]);
+        const maxX = Math.max(a[0], b[0]);
+
+        const side = start.y < wallY ? -1 : 1;
+        const targetY = wallY + side * radius;
+
+        // すでにめり込んでいる
+        if (
+            Math.abs(start.y - wallY) < radius &&
+            start.x >= minX &&
+            start.x <= maxX
+        ) {
+            hit(
+                0,
+                start.x,
+                targetY,
+                0,
+                side
+            );
+        }
+        // 壁へ向かって移動している
+        else if (dy * side > 0) {
+            const t = (targetY - start.y) / dy;
+
+            if (t >= 0 && t <= 1) {
+                const x = start.x + dx * t;
+
+                if (x >= minX && x <= maxX) {
+                    hit(
+                        t,
+                        x,
+                        targetY,
+                        0,
+                        side
+                    );
+                }
+            }
+        }
+    }
+
+    // 縦壁
+    else if (a[0] === b[0]) {
+        const wallX = a[0];
+        const minY = Math.min(a[1], b[1]);
+        const maxY = Math.max(a[1], b[1]);
+
+        const side = start.x < wallX ? -1 : 1;
+        const targetX = wallX + side * radius;
+
+        // すでにめり込んでいる
+        if (
+            Math.abs(start.x - wallX) < radius &&
+            start.y >= minY &&
+            start.y <= maxY
+        ) {
+            hit(
+                0,
+                targetX,
+                start.y,
+                side,
+                0
+            );
+        }
+        // 壁へ向かって移動している
+        else if (dx * side > 0) {
+            const t = (targetX - start.x) / dx;
+
+            if (t >= 0 && t <= 1) {
+                const y = start.y + dy * t;
+
+                if (y >= minY && y <= maxY) {
+                    hit(
+                        t,
+                        targetX,
+                        y,
+                        side,
+                        0
+                    );
+                }
+            }
+        }
+    }
+
+    // 端点
+    for (const p of [a, b]) {
+        const ox = start.x - p[0];
+        const oy = start.y - p[1];
+
+        const A = dx * dx + dy * dy;
+
+        if (A === 0) continue;
+
+        const B = 2 * (ox * dx + oy * dy);
+        const C = ox * ox + oy * oy - radius * radius;
+
+        const D = B * B - 4 * A * C;
+
+        if (D < 0) continue;
+
+        const sqrtD = Math.sqrt(D);
+
+        const t1 = (-B - sqrtD) / (2 * A);
+        const t2 = (-B + sqrtD) / (2 * A);
+
+        let t = Infinity;
+
+        if (t1 >= 0 && t1 <= 1) {
+            t = t1;
+        }
+
+        if (t2 >= 0 && t2 <= 1 && t2 < t) {
+            t = t2;
+        }
+
+        if (t === Infinity) continue;
+
+        const x = start.x + dx * t;
+        const y = start.y + dy * t;
+
+        const nx = x - p[0];
+        const ny = y - p[1];
+
+        const length = Math.hypot(nx, ny);
+
+        if (length === 0) continue;
+
+        hit(
+            t,
+            x,
+            y,
+            nx / length,
+            ny / length
+        );
+    }
+
+    return best;
+}
 
 function animate() {
     requestAnimationFrame(animate);   
