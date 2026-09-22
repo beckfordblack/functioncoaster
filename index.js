@@ -25,7 +25,7 @@ function init() {
         0.1,
         1000
     );
-    camera.position.set(3.5, 6, 25);
+    camera.position.set(5.5, 8, 36);
     
     renderer = new THREE.WebGLRenderer({
         antialias: true
@@ -43,7 +43,7 @@ function init() {
                 monkey.position.z = 2;
                 monkey.position.x = 2;
                 monkey.position.y = 2;
-                monkey.scale.setScalar(0.3);
+                monkey.scale.setScalar(0.6);
             }
         })
         scene.add(gltf.scene);
@@ -52,14 +52,11 @@ function init() {
 
 function createWalls(grid) {
     const walls = [];
-
     const h = grid.length;
     const w = grid[0].length;
-
     for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
             if (grid[y][x] !== 1) continue;
-
             // 上
             if (y === 0 || grid[y - 1][x] === 0) {
                 walls.push([
@@ -67,7 +64,6 @@ function createWalls(grid) {
                     [x + 1, y]
                 ]);
             }
-
             // 下
             if (y === h - 1 || grid[y + 1][x] === 0) {
                 walls.push([
@@ -75,7 +71,6 @@ function createWalls(grid) {
                     [x + 1, y + 1]
                 ]);
             }
-
             // 左
             if (x === 0 || grid[y][x - 1] === 0) {
                 walls.push([
@@ -83,7 +78,6 @@ function createWalls(grid) {
                     [x, y + 1]
                 ]);
             }
-
             // 右
             if (x === w - 1 || grid[y][x + 1] === 0) {
                 walls.push([
@@ -93,7 +87,6 @@ function createWalls(grid) {
             }
         }
     }
-
     return walls;
 }
 
@@ -104,27 +97,21 @@ function movePlayer(moveX, moveY) {
         x: monkey.position.x,
         y: monkey.position.y
     };
-
     const end = {
         x: start.x + moveX,
         y: start.y + moveY
     };
-
     const hit = findCollision(start, end, PLAYER_RADIUS);
-
     if (!hit) {
         monkey.position.x = end.x;
         monkey.position.y = end.y;
         return;
     }
-
     monkey.position.x = hit.x;
     monkey.position.y = hit.y;
-
     const dot = moveX * hit.nx + moveY * hit.ny;
-
-    dx = moveX - 2 * dot * hit.nx;
-    dy = moveY - 2 * dot * hit.ny;
+    dx = (moveX - 2 * dot * hit.nx) * 0.8;
+    dy = (moveY - 2 * dot * hit.ny) * 0.8;
 }
 
 function findCollision(start, end, radius) {
@@ -149,26 +136,19 @@ function findCollision(start, end, radius) {
 function sweepCircle(start, end, radius, a, b) {
     const dx = end.x - start.x;
     const dy = end.y - start.y;
-
-    // 横壁
     if (a[1] === b[1]) {
         const y = a[1];
         const minX = Math.min(a[0], b[0]);
         const maxX = Math.max(a[0], b[0]);
-
         if (dy === 0) return null;
-
+        if (start.y < y && dy <= 0) return null;
+        if (start.y > y && dy >= 0) return null;
         const side = start.y < y ? -1 : 1;
         const targetY = y + side * radius;
-
         const t = (targetY - start.y) / dy;
-
         if (t < 0 || t > 1) return null;
-
         const x = start.x + dx * t;
-
         if (x < minX || x > maxX) return null;
-
         return {
             x,
             y: targetY,
@@ -177,26 +157,19 @@ function sweepCircle(start, end, radius, a, b) {
             ny: side
         };
     }
-
-    // 縦壁
     if (a[0] === b[0]) {
         const x = a[0];
         const minY = Math.min(a[1], b[1]);
         const maxY = Math.max(a[1], b[1]);
-
         if (dx === 0) return null;
-
+        if (start.x < x && dx <= 0) return null;
+        if (start.x > x && dx >= 0) return null;
         const side = start.x < x ? -1 : 1;
         const targetX = x + side * radius;
-
         const t = (targetX - start.x) / dx;
-
         if (t < 0 || t > 1) return null;
-
         const y = start.y + dy * t;
-
         if (y < minY || y > maxY) return null;
-
         return {
             x: targetX,
             y,
@@ -205,29 +178,36 @@ function sweepCircle(start, end, radius, a, b) {
             ny: 0
         };
     }
-
     return null;
 }
 
 function animate() {
-    requestAnimationFrame(animate);
-    
+    requestAnimationFrame(animate);   
     if (moving) {
         if (monkey) {
+            monkey.position.x += 0.5;
+            monkey.position.y += 0.5;
             movePlayer(dx, dy)
+            monkey.position.x -= 0.5;
+            monkey.position.y -= 0.5;
             monkey.rotation.y += dx;
+
+            camDy = (camera.position.y - monkey.position.y) * 0.01;
         }
-    
         dx *= 0.99;
         dy *= 0.99;
-        
         dy -= 0.01;
 
+        camDy *= 0.8;
+        camera.position.y -= camDy;
+
+        if (camera.position.y < 8) {
+            camera.position.y = 8;
+        }
         if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) {
             // moving = false;
         }
     }
-
     renderer.render(scene, camera);
 }
 
@@ -404,10 +384,12 @@ const tunnel = new THREE.Mesh(
 );
 scene.add(tunnel);
 
-const PLAYER_RADIUS = 0.1;
+const PLAYER_RADIUS = 0.6;
 
 let dx = 0;
 let dy = 0;
+
+let camDy = 0;
 
 let dragging = false;
 let moving = false;
