@@ -42,14 +42,19 @@ function init() {
 function animate() {
     requestAnimationFrame(animate);
 
-    if (monkey) {
-        monkey.position.x += dx;
-        monkey.position.y += dy;
+    if (moving) {
+        if (monkey) {
+            monkey.position.x += dx;
+            monkey.position.y += dy;
+            monkey.rotation.y += 0.1;
+        }
+    
+        dx *= 0.99;
+        dy *= 0.99;
+        
+        dy -= 0.01;
     }
 
-    dx *= 0.9;
-    dy *= 0.9;
-    
     renderer.render(scene, camera);
 }
 
@@ -65,6 +70,7 @@ init();
 resizeCanvas();
 
 let dragging = false;
+let moving = false;
 let previousX = 0;
 let previousY = 0;
 
@@ -95,6 +101,7 @@ canvas.addEventListener("pointerup", (e) => {
     dragging = false;
     dx = -(e.clientX - previousX) / 100;
     dy = (e.clientY - previousY) / 100;
+    moving = true;
 });
 
 canvas.addEventListener("pointerleave", (e) => {
