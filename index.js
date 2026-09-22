@@ -1,22 +1,17 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
+const response = await fetch("course.json");
+const course = await response.json();
+
 const GAME_WIDTH = 1080;
 const GAME_HEIGHT = 1920;
-
-const grid = [
-    [1, 1, 1, 1, 1, 1],
-    [1, 1, 0, 0, 1, 1],
-    [1, 0, 0, 0, 0, 0],
-    [1, 0, 0, 0, 0, 1]
-];
 
 function resizeCanvas() {
     const x = innerWidth / GAME_WIDTH;
     const y = innerHeight / GAME_HEIGHT;
     canvas.style.scale = `${Math.min(x, y)}`;
 }
-
 
 let scene, camera, renderer, canvas, monkey;
 
@@ -25,13 +20,12 @@ function init() {
     scene.background = new THREE.Color(0x202020);
     
     camera = new THREE.PerspectiveCamera(
-        45,
+        35,
         GAME_WIDTH/GAME_HEIGHT,
         0.1,
         1000
     );
-    camera.position.set(4, 4, 50);
-    camera.lookAt(4, 4, 0);
+    camera.position.set(3.5, 6, 25);
     
     renderer = new THREE.WebGLRenderer({
         antialias: true
@@ -44,34 +38,86 @@ function init() {
     loader.load("monkey.glb", (gltf) => {
         gltf.scene.traverse((object) => {
             if (object.isMesh) {
-                object.material = new THREE.MeshBasicMaterial()
                 object.material = new THREE.MeshNormalMaterial()
                 monkey = object;
+                monkey.position.z = 2;
+                monkey.position.x = 2;
+                monkey.position.y = 2;
+                monkey.scale.setScalar(0.3);
             }
         })
         scene.add(gltf.scene);
     });
 }
 
+function movePlayer(dx, dy) {
+    const start = {
+        x: monkey.position.x,
+        y: monkey.position.y
+    };
+    const end = {
+        x: start.x + dx,
+        y: start.y + dy
+    };
+    const hit = findCollision(start, end, PLAYER_RADIUS);
+    if (hit) {
+        monkey.position.x = hit.x;
+        monkey.position.y = hit.y;
+    }
+    else {
+        monkey.position.x = end.x;
+        monkey.position.y = end.y;
+    }
+}
+
+function findCollision(start, end, radius) {
+    let nearest = null;
+    let nearestT = Infinity;
+    for (const wall of walls) {
+        const hit = sweepCircle(
+            start,
+            end,
+            radius,
+            wall.a,
+            wall.b
+        );
+        if (hit && hit.t < nearestT) {
+            nearestT = hit.t;
+            nearest = hit;
+        }
+    }
+    return nearest;
+}
+
+function sweepCircle(start, end, radius, a, b) {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const vx = b.x - a.x;
+    const vy = b.y - a.y;
+    const len = Math.hypot(vx, vy);
+    if (len === 0) return null;
+    const nx = -vy / len;
+    const ny = vx / len;
+    const sx = start.x - a.x;
+    const sy = 
+}
+
 function animate() {
     requestAnimationFrame(animate);
-
+    
     if (moving) {
         if (monkey) {
             monkey.position.x += dx;
             monkey.position.y += dy;
-            monkey.rotation.y += dx;
-            if (monkey.position.x < -10) {
+            if (xWall) {
                 dx *= -1;
-                monkey.position.x = -10; 
-            } else if (monkey.position.x > 10) {
-                dx *= -1;
-                monkey.position.x = 10; 
+                monkey.position.x -= xWall; 
             }
-            if (monkey.position.y < -15) {
+            if (yWall) {
                 dy *= -0.8;
-                monkey.position.y = -15;
+                monkey.position.y -= yWall;
             }
+            monkey.rotation.y += dx;
         }
     
         dx *= 0.99;
@@ -80,7 +126,7 @@ function animate() {
         dy -= 0.01;
 
         if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) {
-            moving = false;
+            // moving = false;
         }
     }
 
@@ -136,12 +182,11 @@ function marchingSquares(grid) {
                     segments.push([right, bottom]);
                     break;
                 case 9:
-                    segments.push([top, left]);
-                    segments.push([right, bottom]);
-                    break;
-                case 10:
                     segments.push([top, right]);
                     segments.push([left, bottom]);
+                    break;
+                case 10:
+                    segments.push([top, bottom]);
                     break;
                 case 11:
                     segments.push([left, bottom]);
@@ -166,7 +211,7 @@ function connectSegments(segments) {
     const key = ([x, y]) => `${x},${y}`;
     const map = new Map();
     for (const segment of segments) {
-        const [a, b] = segments;
+        const [a, b] = segment;
         const ka = key(a);
         const kb = key(b);
         if (!map.has(ka)) map.set(ka, []);
@@ -190,7 +235,7 @@ function connectSegments(segments) {
             let next = null;
             for (const candiate of candiates) {
                 if (!used.has(candiate.segment)) {
-                    nect = candiate;
+                    next = candiate;
                     break;
                 }
             }
@@ -211,7 +256,7 @@ function connectSegments(segments) {
 function createTunnel(contour, depth) {
     const positions = [];
     const indices = [];
-    const n = contours.length;
+    const n = contour.length;
     for (const [x, y] of contour) {
         positions.push(x, y, 0);
     }
@@ -245,12 +290,12 @@ init();
 resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
 
-const segments = marchingSquares(grid);
+const segments = marchingSquares(course.grid);
 const contours = connectSegments(segments);
 const contour = contours[0];
 const geometry = createTunnel(
     contour,
-    20
+    4
 )
 const material = new THREE.MeshNormalMaterial({
     side: THREE.DoubleSide
@@ -261,7 +306,7 @@ const tunnel = new THREE.Mesh(
 );
 scene.add(tunnel);
 
-console.log(tunnel)
+const PLAYER_RADIUS = 0.1;
 
 let dx = 0;
 let dy = 0;
