@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 const GAME_WIDTH = 1080;
 const GAME_HEIGHT = 1920;
 
-let scene, camera, renderer, canvas, monkey, dx, dy;
+let scene, camera, renderer, canvas, monkey;
 
 function init() {
     scene = new THREE.Scene();
@@ -34,9 +34,6 @@ function init() {
         })
         scene.add(gltf.scene);
     });
-    
-    dx = 0;
-    dy = 0;
 }
 
 function animate() {
@@ -46,13 +43,28 @@ function animate() {
         if (monkey) {
             monkey.position.x += dx;
             monkey.position.y += dy;
-            monkey.rotation.y += 0.1;
+            monkey.rotation.y += dx;
+            if (monkey.position.x < -10) {
+                dx *= -1;
+                monkey.position.x = -10; 
+            } else if (monkey.position.x > 10) {
+                dx *= -1;
+                monkey.position.x = 10; 
+            }
+            if (monkey.position.y < -15) {
+                dy *= -0.8;
+                monkey.position.y = -15;
+            }
         }
     
         dx *= 0.99;
         dy *= 0.99;
         
         dy -= 0.01;
+
+        if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) {
+            moving = false;
+        }
     }
 
     renderer.render(scene, camera);
@@ -68,6 +80,9 @@ window.addEventListener("resize", resizeCanvas);
 
 init();
 resizeCanvas();
+
+let dx = 0;
+let dy = 0;
 
 let dragging = false;
 let moving = false;
@@ -98,6 +113,7 @@ canvas.addEventListener("pointermove", (e) => {
 });
 
 canvas.addEventListener("pointerup", (e) => {
+    if (!dragging) return;
     dragging = false;
     dx = -(e.clientX - previousX) / 100;
     dy = (e.clientY - previousY) / 100;
