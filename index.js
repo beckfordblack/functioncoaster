@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 const GAME_WIDTH = 1080;
 const GAME_HEIGHT = 1920;
 
-let scene, camera, renderer, monkey;
+let scene, camera, renderer, canvas, monkey, dx, dy;
 
 function init() {
     scene = new THREE.Scene();
@@ -15,17 +15,16 @@ function init() {
         0.1,
         1000
     );
+    camera.position.z = 50;
     
     renderer = new THREE.WebGLRenderer({
         antialias: true
     });
-    
     renderer.setSize(GAME_WIDTH, GAME_HEIGHT);
-    
-    document.body.appendChild(renderer.domElement);
+    canvas = renderer.domElement;   
+    document.body.appendChild(canvas);
 
     const loader = new GLTFLoader();
-
     loader.load("monkey.glb", (gltf) => {
         gltf.scene.traverse((object) => {
             if (object.isMesh) {
@@ -36,11 +35,20 @@ function init() {
         scene.add(gltf.scene);
     });
     
-    camera.position.z = 6;
+    dx = 0;
+    dy = 0;
 }
 
 function animate() {
     requestAnimationFrame(animate);
+
+    if (monkey) {
+        monkey.position.x += dx;
+        monkey.position.y += dy;
+    }
+
+    dx *= 0.9;
+    dy *= 0.9;
     
     renderer.render(scene, camera);
 }
@@ -48,7 +56,7 @@ function animate() {
 function resizeCanvas() {
     const x = innerWidth / GAME_WIDTH;
     const y = innerHeight / GAME_HEIGHT;
-    renderer.domElement.style.scale = `${Math.min(x, y)}`;
+    canvas.style.scale = `${Math.min(x, y)}`;
 }
 
 window.addEventListener("resize", resizeCanvas);
@@ -60,27 +68,36 @@ let dragging = false;
 let previousX = 0;
 let previousY = 0;
 
-renderer.domElement.addEventListener("pointerdown", (e) => {
-    dragging = true;
-    previousX = e.clientX;
-    previousY = e.clientY;
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+canvas.addEventListener("pointerdown", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(scene.children);
+    if (hits.length === 0) return;
+    if (hits[0].object) {
+        dragging = true;
+        previousX = e.clientX;
+        previousY = e.clientY;
+    }
 });
 
-renderer.domElement.addEventListener("pointermove", (e) => {
+canvas.addEventListener("pointermove", (e) => {
     if (!dragging || !monkey) return;
     const dx = e.clientX - previousX;
     const dy = e.clientY - previousY;
-    monkey.rotation.y += dx * 0.01;
-    monkey.rotation.x += dy * 0.01;
-    previousX = e.clientX;
-    previousY = e.clientY;
 });
 
-renderer.domElement.addEventListener("pointerup", (e) => {
+canvas.addEventListener("pointerup", (e) => {
     dragging = false;
+    dx = -(e.clientX - previousX) / 100;
+    dy = (e.clientY - previousY) / 100;
 });
 
-renderer.domElement.addEventListener("pointerleave", (e) => {
+canvas.addEventListener("pointerleave", (e) => {
     dragging = false;
 });
 
