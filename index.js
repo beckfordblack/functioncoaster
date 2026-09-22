@@ -110,8 +110,8 @@ function movePlayer(moveX, moveY) {
     monkey.position.x = hit.x;
     monkey.position.y = hit.y;
     const dot = moveX * hit.nx + moveY * hit.ny;
-    dx = (moveX - 2 * dot * hit.nx) * 0.8;
-    dy = (moveY - 2 * dot * hit.ny) * 0.8;
+    dx = (moveX - 2 * dot * hit.nx) * 0.6;
+    dy = (moveY - 2 * dot * hit.ny) * 0.6;
 }
 
 function findCollision(start, end, radius) {
@@ -192,7 +192,7 @@ function animate() {
             monkey.position.y -= 0.5;
             monkey.rotation.y += dx;
 
-            camDy = (camera.position.y - monkey.position.y) * 0.01;
+            camDy = (camera.position.y - monkey.position.y) * 0.1;
         }
         dx *= 0.99;
         dy *= 0.99;
@@ -384,7 +384,7 @@ const tunnel = new THREE.Mesh(
 );
 scene.add(tunnel);
 
-const PLAYER_RADIUS = 0.6;
+const PLAYER_RADIUS = 0.5;
 
 let dx = 0;
 let dy = 0;
