@@ -99,24 +99,32 @@ function createWalls(grid) {
 
 const walls = createWalls(course.grid);
 
-function movePlayer(dx, dy) {
+function movePlayer(moveX, moveY) {
     const start = {
         x: monkey.position.x,
         y: monkey.position.y
     };
+
     const end = {
-        x: start.x + dx,
-        y: start.y + dy
+        x: start.x + moveX,
+        y: start.y + moveY
     };
+
     const hit = findCollision(start, end, PLAYER_RADIUS);
-    if (hit) {
-        monkey.position.x = hit.x;
-        monkey.position.y = hit.y;
-    }
-    else {
+
+    if (!hit) {
         monkey.position.x = end.x;
         monkey.position.y = end.y;
+        return;
     }
+
+    monkey.position.x = hit.x;
+    monkey.position.y = hit.y;
+
+    const dot = moveX * hit.nx + moveY * hit.ny;
+
+    dx = moveX - 2 * dot * hit.nx;
+    dy = moveY - 2 * dot * hit.ny;
 }
 
 function findCollision(start, end, radius) {
