@@ -136,166 +136,49 @@ function findCollision(start, end, radius) {
 function sweepCircle(start, end, radius, a, b) {
     const dx = end.x - start.x;
     const dy = end.y - start.y;
-
-    let best = null;
-
-    function setHit(t, x, y, nx, ny) {
-        if (t < 0 || t > 1) return;
-
-        if (!best || t < best.t) {
-            best = { x, y, t, nx, ny };
-        }
-    }
-
-    // 横壁
     if (a[1] === b[1]) {
-        const wallY = a[1];
+        const y = a[1];
         const minX = Math.min(a[0], b[0]);
         const maxX = Math.max(a[0], b[0]);
-
-        const distance = start.y - wallY;
-
-        // すでにめり込んでいる
-        if (
-            Math.abs(distance) < radius &&
-            start.x >= minX &&
-            start.x <= maxX
-        ) {
-            // 移動方向から、壁の外側を向く法線を決める
-            const ny = dy > 0 ? -1 : 1;
-
-            setHit(
-                0,
-                start.x,
-                wallY + ny * radius,
-                0,
-                ny
-            );
-        }
-        // 壁に向かっている
-        else if (distance < -radius && dy > 0) {
-            const targetY = wallY - radius;
-            const t = (targetY - start.y) / dy;
-
-            if (t >= 0 && t <= 1) {
-                const x = start.x + dx * t;
-
-                if (x >= minX && x <= maxX) {
-                    setHit(t, x, targetY, 0, -1);
-                }
-            }
-        }
-        else if (distance > radius && dy < 0) {
-            const targetY = wallY + radius;
-            const t = (targetY - start.y) / dy;
-
-            if (t >= 0 && t <= 1) {
-                const x = start.x + dx * t;
-
-                if (x >= minX && x <= maxX) {
-                    setHit(t, x, targetY, 0, 1);
-                }
-            }
-        }
+        if (dy === 0) return null;
+        if (start.y < y && dy <= 0) return null;
+        if (start.y > y && dy >= 0) return null;
+        const side = start.y < y ? -1 : 1;
+        const targetY = y + side * radius;
+        const t = (targetY - start.y) / dy;
+        if (t < 0 || t > 1) return null;
+        const x = start.x + dx * t;
+        if (x < minX || x > maxX) return null;
+        return {
+            x,
+            y: targetY,
+            t,
+            nx: 0,
+            ny: side
+        };
     }
-
-    // 縦壁
-    else if (a[0] === b[0]) {
-        const wallX = a[0];
+    if (a[0] === b[0]) {
+        const x = a[0];
         const minY = Math.min(a[1], b[1]);
         const maxY = Math.max(a[1], b[1]);
-
-        const distance = start.x - wallX;
-
-        // すでにめり込んでいる
-        if (
-            Math.abs(distance) < radius &&
-            start.y >= minY &&
-            start.y <= maxY
-        ) {
-            const nx = dx > 0 ? -1 : 1;
-
-            setHit(
-                0,
-                wallX + nx * radius,
-                start.y,
-                nx,
-                0
-            );
-        }
-        // 左から右へ
-        else if (distance < -radius && dx > 0) {
-            const targetX = wallX - radius;
-            const t = (targetX - start.x) / dx;
-
-            if (t >= 0 && t <= 1) {
-                const y = start.y + dy * t;
-
-                if (y >= minY && y <= maxY) {
-                    setHit(t, targetX, y, -1, 0);
-                }
-            }
-        }
-        // 右から左へ
-        else if (distance > radius && dx < 0) {
-            const targetX = wallX + radius;
-            const t = (targetX - start.x) / dx;
-
-            if (t >= 0 && t <= 1) {
-                const y = start.y + dy * t;
-
-                if (y >= minY && y <= maxY) {
-                    setHit(t, targetX, y, 1, 0);
-                }
-            }
-        }
-    }
-
-    // 端点
-    for (const p of [a, b]) {
-        const ox = start.x - p[0];
-        const oy = start.y - p[1];
-
-        const A = dx * dx + dy * dy;
-        if (A === 0) continue;
-
-        const B = 2 * (ox * dx + oy * dy);
-        const C = ox * ox + oy * oy - radius * radius;
-
-        const D = B * B - 4 * A * C;
-        if (D < 0) continue;
-
-        const sqrtD = Math.sqrt(D);
-
-        const t1 = (-B - sqrtD) / (2 * A);
-        const t2 = (-B + sqrtD) / (2 * A);
-
-        let t = Infinity;
-
-        if (t1 >= 0 && t1 <= 1) t = t1;
-        if (t2 >= 0 && t2 <= 1 && t2 < t) t = t2;
-
-        if (t === Infinity) continue;
-
-        const x = start.x + dx * t;
+        if (dx === 0) return null;
+        if (start.x < x && dx <= 0) return null;
+        if (start.x > x && dx >= 0) return null;
+        const side = start.x < x ? -1 : 1;
+        const targetX = x + side * radius;
+        const t = (targetX - start.x) / dx;
+        if (t < 0 || t > 1) return null;
         const y = start.y + dy * t;
-
-        const nx = x - p[0];
-        const ny = y - p[1];
-        const length = Math.hypot(nx, ny);
-
-        if (length === 0) continue;
-
-        setHit(
-            t,
-            x,
+        if (y < minY || y > maxY) return null;
+        return {
+            x: targetX,
             y,
-            nx / length,
-            ny / length
-        );
+            t,
+            nx: side,
+            ny: 0
+        };
     }
-
-    return best;
+    return null;
 }
 
 function animate() {
