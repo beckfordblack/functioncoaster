@@ -50,8 +50,6 @@ function init() {
     });
 }
 
-const walls = [];
-
 function createWalls(grid) {
     const walls = [];
 
@@ -99,7 +97,7 @@ function createWalls(grid) {
     return walls;
 }
 
-const walls = createWalls(grid);
+const walls = createWalls(course.grid);
 
 function movePlayer(dx, dy) {
     const start = {
@@ -129,8 +127,8 @@ function findCollision(start, end, radius) {
             start,
             end,
             radius,
-            wall.a,
-            wall.b
+            wall[0],
+            wall[1]
         );
         if (hit && hit.t < nearestT) {
             nearestT = hit.t;
