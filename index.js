@@ -92,29 +92,18 @@ function findCollision(start, end, radius) {
 function sweepCircle(start, end, radius, a, b) {
     const dx = end.x - start.x;
     const dy = end.y - start.y;
-
     const vx = b.x - a.x;
     const vy = b.y - a.y;
-
     const len = Math.hypot(vx, vy);
-
     if (len === 0) return null;
-
-    // 壁の単位法線
     const nx = -vy / len;
     const ny = vx / len;
-
-    // プレイヤー中心と壁の距離を計算
     const sx = start.x - a.x;
     const sy = start.y - a.y;
-
     const ex = end.x - a.x;
     const ey = end.y - a.y;
-
     const startDist = sx * nx + sy * ny;
     const endDist = ex * nx + ey * ny;
-
-    // 半径の範囲に入っていない
     if (Math.abs(startDist) <= radius) {
         return {
             x: start.x,
@@ -122,40 +111,26 @@ function sweepCircle(start, end, radius, a, b) {
             t: 0
         };
     }
-
-    // 壁に向かっていない
     if (
         (startDist > radius && endDist > radius) ||
         (startDist < -radius && endDist < -radius)
     ) {
         return null;
     }
-
-    // 壁から半径分離れた位置との交差を求める
     const target =
         startDist > 0 ? radius : -radius;
-
     const denom = endDist - startDist;
-
     if (denom === 0) return null;
-
     const t = (target - startDist) / denom;
-
     if (t < 0 || t > 1) return null;
-
     const x = start.x + dx * t;
     const y = start.y + dy * t;
-
-    // 壁の線分上にあるか確認
     const px = x - a.x;
     const py = y - a.y;
-
     const u = (px * vx + py * vy) / (len * len);
-
     if (u < 0 || u > 1) {
         return null;
     }
-
     return {
         x,
         y,
@@ -168,16 +143,7 @@ function animate() {
     
     if (moving) {
         if (monkey) {
-            monkey.position.x += dx;
-            monkey.position.y += dy;
-            if (xWall) {
-                dx *= -1;
-                monkey.position.x -= xWall; 
-            }
-            if (yWall) {
-                dy *= -0.8;
-                monkey.position.y -= yWall;
-            }
+            movePlayer(dx, dy)
             monkey.rotation.y += dx;
         }
     
