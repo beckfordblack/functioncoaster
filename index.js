@@ -141,50 +141,112 @@ function findCollision(start, end, radius) {
 function sweepCircle(start, end, radius, a, b) {
     const dx = end.x - start.x;
     const dy = end.y - start.y;
-    const vx = b.x - a.x;
-    const vy = b.y - a.y;
+
+    const vx = b[0] - a[0];
+    const vy = b[1] - a[1];
+
     const len = Math.hypot(vx, vy);
     if (len === 0) return null;
+
+    // 壁に垂直な単位ベクトル
     const nx = -vy / len;
     const ny = vx / len;
-    const sx = start.x - a.x;
-    const sy = start.y - a.y;
-    const ex = end.x - a.x;
-    const ey = end.y - a.y;
+
+    const sx = start.x - a[0];
+    const sy = start.y - a[1];
+
+    const ex = end.x - a[0];
+    const ey = end.y - a[1];
+
     const startDist = sx * nx + sy * ny;
     const endDist = ex * nx + ey * ny;
-    if (Math.abs(startDist) <= radius) {
-        return {
+
+    let best = null;
+
+    // -------------------------
+    // 壁の直線部分との衝突
+    // -------------------------
+
+    if (Math.abs(startDist) > radius) {
+
+        const target = startDist > 0 ? radius : -radius;
+        const denom = endDist - startDist;
+
+        if (denom !== 0) {
+            const t = (target - startDist) / denom;
+
+            if (t >= 0 && t <= 1) {
+                const x = start.x + dx * t;
+                const y = start.y + dy * t;
+
+                const px = x - a[0];
+                const py = y - a[1];
+
+                const u = (px * vx + py * vy) / (len * len);
+
+                if (u >= 0 && u <= 1) {
+                    best = {
+                        x,
+                        y,
+                        t
+                    };
+                }
+            }
+        }
+    }
+
+    // -------------------------
+    // 端点との衝突
+    // -------------------------
+
+    const endpoints = [a, b];
+
+    for (const p of endpoints) {
+        const ox = start.x - p[0];
+        const oy = start.y - p[1];
+
+        const A = dx * dx + dy * dy;
+        const B = 2 * (ox * dx + oy * dy);
+        const C = ox * ox + oy * oy - radius * radius;
+
+        if (A === 0) continue;
+
+        const discriminant = B * B - 4 * A * C;
+
+        if (discriminant < 0) continue;
+
+        const sqrtD = Math.sqrt(discriminant);
+
+        const t1 = (-B - sqrtD) / (2 * A);
+        const t2 = (-B + sqrtD) / (2 * A);
+
+        let t = null;
+
+        if (t1 >= 0 && t1 <= 1) {
+            t = t1;
+        } else if (t2 >= 0 && t2 <= 1) {
+            t = t2;
+        }
+
+        if (t !== null && (!best || t < best.t)) {
+            best = {
+                x: start.x + dx * t,
+                y: start.y + dy * t,
+                t
+            };
+        }
+    }
+
+    // 最初から壁の中にいる場合
+    if (Math.abs(startDist) <= radius && best === null) {
+        best = {
             x: start.x,
             y: start.y,
             t: 0
         };
     }
-    if (
-        (startDist > radius && endDist > radius) ||
-        (startDist < -radius && endDist < -radius)
-    ) {
-        return null;
-    }
-    const target =
-        startDist > 0 ? radius : -radius;
-    const denom = endDist - startDist;
-    if (denom === 0) return null;
-    const t = (target - startDist) / denom;
-    if (t < 0 || t > 1) return null;
-    const x = start.x + dx * t;
-    const y = start.y + dy * t;
-    const px = x - a.x;
-    const py = y - a.y;
-    const u = (px * vx + py * vy) / (len * len);
-    if (u < 0 || u > 1) {
-        return null;
-    }
-    return {
-        x,
-        y,
-        t
-    };
+
+    return best;
 }
 
 function animate() {
