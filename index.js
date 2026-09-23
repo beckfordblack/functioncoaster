@@ -398,15 +398,6 @@ function createTunnel(contour, depth) {
         indices.push(a, b, c);
         indices.push(a, c, d);
     }
-    const wallIndexCount = indices.length;
-    const points = contour.map(
-        ([x, y]) => new THREE.Vector2(x, y)
-    );
-    const triangles = THREE.ShapeUtils.triangulateShape(points, []);
-    for (const [a, b, c] of triangles) {
-        indices.push(a, b, c);
-    }
-    const backIndexCount = indices.length - wallIndexCount;
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute(
         "position",
@@ -416,155 +407,29 @@ function createTunnel(contour, depth) {
         )
     );
     geometry.setIndex(indices);
-    geometry.addGroup(
-        0,
-        wallIndexCount,
-        0
-    );
-    geometry.addGroup(
-        wallIndexCount,
-        backIndexCount,
-        1
-    );
     geometry.computeVertexNormals();
     return geometry;
 }
 
 function createOuterWall(contour, minX, maxX, minY, maxY, z) {
-    const positions = [];
-    const indices = [];
-
-    function addQuad(a, b, c, d) {
-        const start = positions.length / 3;
-
-        positions.push(
-            a[0], a[1], z,
-            b[0], b[1], z,
-            c[0], c[1], z,
-            d[0], d[1], z
-        );
-
-        indices.push(
-            start, start + 1, start + 2,
-            start, start + 2, start + 3
+    const shape = new THREE.Shape();
+    shape.moveTo(minX, minY);
+    shape.lineTo(maxX, minY);
+    shape.lineTo(maxX, maxY);
+    shape.lineTo(minX, maxY);
+    shape.closePath();
+    const hole = new THREE.Path();
+    hole.moveTo(contour[0][0], contour[0][1]);
+    for (let i = 1; i < contour.length; i++) {
+        hole.lineTo(
+            contour[i][0],
+            contour[i][1]
         );
     }
-
-    function intersectRayWithRect(
-        point,
-        direction
-    ) {
-        let best = null;
-        let bestT = Infinity;
-
-        const edges = [
-            [[minX, minY], [maxX, minY]],
-            [[maxX, minY], [maxX, maxY]],
-            [[maxX, maxY], [minX, maxY]],
-            [[minX, maxY], [minX, minY]]
-        ];
-
-        for (const [a, b] of edges) {
-            const ex = b[0] - a[0];
-            const ey = b[1] - a[1];
-
-            const cross =
-                direction[0] * ey -
-                direction[1] * ex;
-
-            if (cross === 0) continue;
-
-            const px = a[0] - point[0];
-            const py = a[1] - point[1];
-
-            const t =
-                (px * ey - py * ex) / cross;
-
-            const u =
-                (px * direction[1] -
-                 py * direction[0]) / cross;
-
-            if (
-                t > 0 &&
-                t < bestT &&
-                u >= 0 &&
-                u <= 1
-            ) {
-                bestT = t;
-
-                best = [
-                    point[0] + direction[0] * t,
-                    point[1] + direction[1] * t
-                ];
-            }
-        }
-
-        return best;
-    }
-
-    for (let i = 0; i < contour.length; i++) {
-        const current = contour[i];
-        const next = contour[(i + 1) % contour.length];
-
-        // 線分の中点
-        const center = [
-            (current[0] + next[0]) / 2,
-            (current[1] + next[1]) / 2
-        ];
-
-        // 輪郭線分の方向
-        const dx = next[0] - current[0];
-        const dy = next[1] - current[1];
-
-        // 外側方向
-        let nx = -dy;
-        let ny = dx;
-
-        const length = Math.hypot(nx, ny);
-
-        nx /= length;
-        ny /= length;
-
-        // 輪郭の中点から外枠まで延長
-        const outer = intersectRayWithRect(
-            center,
-            [nx, ny]
-        );
-
-        if (!outer) continue;
-
-        // 輪郭線分から外枠まで面を張る
-        const outerA = [
-            outer[0] - dx / 2,
-            outer[1] - dy / 2
-        ];
-
-        const outerB = [
-            outer[0] + dx / 2,
-            outer[1] + dy / 2
-        ];
-
-        addQuad(
-            current,
-            next,
-            outerB,
-            outerA
-        );
-    }
-
-    const geometry = new THREE.BufferGeometry();
-
-    geometry.setAttribute(
-        "position",
-        new THREE.Float32BufferAttribute(
-            positions,
-            3
-        )
-    );
-
-    geometry.setIndex(indices);
-    geometry.computeVertexNormals();
-
+    hole.closePath();
+    shape.holes.push(hole);
+    const geometry = new THREE.ShapeGeometry(shape);
+    geometry.translate(0, 0, z);
     return geometry;
 }
 
@@ -673,18 +538,31 @@ const segments = marchingSquares(course.grid);
 const contours = connectSegments(segments);
 const contour = contours[0];
 const geometry = createTunnel(contour, 4)
-const wallmaterial = new THREE.MeshBasicMaterial({
+const material = new THREE.MeshBasicMaterial({
     color: 0x2c4999,
     side: THREE.BackSide
 });
-const backMaterial = new THREE.MeshBasicMaterial({
-    color: 0x0b193f,
-    side: THREE.FrontSide
-});
 const tunnel = new THREE.Mesh(
     geometry,
-    [wallmaterial, backMaterial]
+    material
 );
 scene.add(tunnel);
+const outerWallGeometry = createOuterWall(
+    contour,
+    -1,
+    12,
+    -10,
+    100,
+    4
+);
+const outerWallMaterial = new THREE.MeshBasicMaterial({
+    color: 0x0b193f,
+    side: THREE.DoubleSide
+});
+const outerWall = new THREE.Mesh(
+    outerWallGeometry,
+    outerWallMaterial
+);
+scene.add(outerWall);
 
 animate();
