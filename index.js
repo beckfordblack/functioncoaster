@@ -255,8 +255,8 @@ function movePlayer(moveX, moveY) {
     monkey.position.x = hit.x;
     monkey.position.y = hit.y;
     const dot = moveX * hit.nx + moveY * hit.ny;
-    velocityX = (moveX - 2 * dot * hit.nx) * 0.5;
-    velocityY = (moveY - 2 * dot * hit.ny) * 0.5;
+    velocityX = (moveX - 2 * dot * hit.nx) * 0.6;
+    velocityY = (moveY - 2 * dot * hit.ny) * 0.6;
 }
 
 function marchingSquares(grid) {
@@ -384,11 +384,10 @@ function createTunnel(contour, depth) {
     const indices = [];
     const n = contour.length;
     for (const [x, y] of contour) {
-        positions.push(x, y, 0);
-    }
-    
-    for (const [x, y] of contour) {
         positions.push(x, y, depth);
+    }
+    for (const [x, y] of contour) {
+        positions.push(x, y, 0);
     }
     for (let i = 0; i < n; i++) {
         const next = (i + 1) % n;
@@ -399,6 +398,19 @@ function createTunnel(contour, depth) {
         indices.push(a, b, c);
         indices.push(a, c, d);
     }
+    const wallIndexCount = indices.length;
+    const points = contour.map(
+        ([x, y]) => new THREE.Vector2(x, y)
+    );
+    const triangles = THREE.ShapeUtils.triangulateShape(points, []);
+    for (const [a, b, c] of triangles) {
+        indices.push(
+            n + a,
+            n + b,
+            n + c
+        );
+    }
+    const backIndexCount = indices.length - wallIndexCount;
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute(
         "position",
@@ -408,6 +420,16 @@ function createTunnel(contour, depth) {
         )
     );
     geometry.setIndex(indices);
+    geometry.addGroup(
+        0,
+        wallIndexCount,
+        0
+    );
+    geometry.addGroup(
+        wallIndexCount,
+        backIndexCount,
+        1
+    );
     geometry.computeVertexNormals();
     return geometry;
 }
@@ -517,20 +539,21 @@ const segments = marchingSquares(course.grid);
 const contours = connectSegments(segments);
 const contour = contours[0];
 const geometry = createTunnel(contour, 4)
-const material = new THREE.ShaderMaterial({
-    vertexShader: `
-        void main() {
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-    `,
-    fragmentShader: `
-        void main() {
-            gl_FragColor = vec4(0.15, 0.25, 0.4, 1.0);
-        }
-    `,
-    side: THREE.BackSide
+const wallmaterial = new THREE.MeshBasicMaterial({
+    color: 0x2c4999,
+    side: THREE.FrontSide
 });
-const tunnel = new THREE.Mesh(geometry, material);
+const backMaterial = new THREE.MeshBasicMaterial({
+    color: 0x0b193f,
+    side: THREE.DoubleSide
+});
+const tunnel = new THREE.Mesh(
+    geometry,
+    [
+        wallmaterial,
+        backMaterial
+    ]
+);
 scene.add(tunnel);
 
 animate();
