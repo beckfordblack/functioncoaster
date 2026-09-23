@@ -22,6 +22,9 @@ let previousY = 0;
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 
+let effectLine;
+let previous;
+
 function initScene() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x202020);
@@ -59,35 +62,47 @@ function initScene() {
 
 function setupInput(canvas) {
     canvas.addEventListener("pointerdown", (e) => {
-        const rect = canvas.getBoundingClientRect();
-        pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-        pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-        raycaster.setFromCamera(pointer, camera);
-        const hits = raycaster.intersectObjects(scene.children);
-        if (hits.length === 0) return;
-        if (hits[0].object) {
+        const position = getWorldPosition(e, 2);
+        const distance = Math.hypot(
+            position.x - monkey.position.x,
+            position.y - monkey.position.y
+        )
+        if (distance < 1) {
             isDragging = true;
-            previousX = e.clientX;
-            previousY = e.clientY;
+            previous = {
+                x: monkey.position.x,
+                y: monkey.position.y
+            }
+            effectLine = createEffectLine(
+                {x: previous.x, y: previous.y, z: 2},
+                {x: previous.x, y: previous.y, z: 2}
+            )
         }
     });
 
     canvas.addEventListener("pointermove", (e) => {
         if (!isDragging || !monkey) return;
-        const dx = e.clientX - previousX;
-        const dy = e.clientY - previousY;
+        const position = getWorldPosition(e, 2);
+        updateEffectLine(
+            effectLine,
+            {x: previous.x * 2 - position.x, y: previous.y * 2 - position.y, z: 2},
+            {x: position.x, y:position.y, z: 2}
+        );
     });
 
     canvas.addEventListener("pointerup", (e) => {
         if (!isDragging) return;
         isDragging = false;
-        velocityX = -(e.clientX - previousX) / 100;
-        velocityY = (e.clientY - previousY) / 100;
+        removeEffectLine(effectLine);
+        const position = getWorldPosition(e, 2);
+        velocityX = -(position.x - previous.x) / 6;
+        velocityY = -(position.y - previous.y) / 6;
         isMoving = true;
     });
 
     canvas.addEventListener("pointerleave", (e) => {
         isDragging = false;
+        removeEffectLine(effectLine);
     });
 }
 
@@ -378,6 +393,37 @@ function createTunnel(contour, depth) {
     return geometry;
 }
 
+
+
+function updateEffectLine(line, start, end) {
+    const positions = line.geometry.attributes.position.array;
+    positions[0] = start.x;
+    positions[1] = start.y;
+    positions[2] = start.z;
+    positions[3] = end.x;
+    positions[4] = end.y;
+    positions[5] = end.z;
+    line.geometry.attributes.position.needsUpdate = true;
+}
+
+function removeEffectLine(line) {
+    scene.remove(line);
+    line.geometry.dispose();
+    line.material.dispose();
+}
+
+function getWorldPosition(e, z) {
+    const rect = canvas.getBoundingClientRect();
+    pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+    const ray = raycaster.ray;
+    const t = (z - ray.origin.z) / ray.direction.z;
+    return ray.origin.clone().add(
+        ray.direction.clone().multiplyScalar(t)
+    );
+}
+
 function animate() {
     requestAnimationFrame(animate);   
     if (isMoving) {
@@ -412,7 +458,32 @@ const segments = marchingSquares(course.grid);
 const contours = connectSegments(segments);
 const contour = contours[0];
 const geometry = createTunnel(contour, 4)
-const material = new THREE.MeshNormalMaterial({
+const material = new THREE.ShaderMaterial({
+    vertexShader: `
+        varying vec3 vNormal;
+
+        void main() {
+            vNormal = normal;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        varying vec3 vNormal;
+
+        void main() {
+            vec3 darkColor = vec3(0.15, 0.25, 0.4);
+            vec3 lightColor = vec3(0.2, 0.6, 0.5);
+
+            float brightness =
+                dot(normalize(vNormal), vec3(0.0, -1.0, 0.0));
+
+            float t = smoothstep(
+                0.4, 0.6, brightness);
+
+            vec3 color = mix(darkColor, lightColor, t);
+            gl_FragColor = vec4(color, 1.0);
+        }
+    `,
     side: THREE.BackSide
 });
 const tunnel = new THREE.Mesh(geometry, material);
