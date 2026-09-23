@@ -133,53 +133,7 @@ function findCollision(start, end, radius) {
     return nearest;
 }
 
-function sweepCircle(start, end, radius, a, b) {
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    if (a[1] === b[1]) {
-        const y = a[1];
-        const minX = Math.min(a[0], b[0]);
-        const maxX = Math.max(a[0], b[0]);
-        if (dy === 0) return null;
-        if (start.y < y && dy <= 0) return null;
-        if (start.y > y && dy >= 0) return null;
-        const side = start.y < y ? -1 : 1;
-        const targetY = y + side * radius;
-        const t = (targetY - start.y) / dy;
-        if (t < 0 || t > 1) return null;
-        const x = start.x + dx * t;
-        if (x < minX || x > maxX) return null;
-        return {
-            x,
-            y: targetY,
-            t,
-            nx: 0,
-            ny: side
-        };
-    }
-    if (a[0] === b[0]) {
-        const x = a[0];
-        const minY = Math.min(a[1], b[1]);
-        const maxY = Math.max(a[1], b[1]);
-        if (dx === 0) return null;
-        if (start.x < x && dx <= 0) return null;
-        if (start.x > x && dx >= 0) return null;
-        const side = start.x < x ? -1 : 1;
-        const targetX = x + side * radius;
-        const t = (targetX - start.x) / dx;
-        if (t < 0 || t > 1) return null;
-        const y = start.y + dy * t;
-        if (y < minY || y > maxY) return null;
-        return {
-            x: targetX,
-            y,
-            t,
-            nx: side,
-            ny: 0
-        };
-    }
-    return null;
-}
+
 
 function animate() {
     requestAnimationFrame(animate);   
