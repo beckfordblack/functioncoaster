@@ -6,7 +6,7 @@ const course = await response.json();
 
 const GAME_WIDTH = 1080;
 const GAME_HEIGHT = 1920;
-const PLAYER_RADIUS = 0.6;
+const PLAYER_RADIUS = 0.3;
 
 let scene, camera, renderer, canvas, monkey;
 
@@ -35,7 +35,7 @@ function initScene() {
         0.1,
         1000
     );
-    camera.position.set(5.5, 6, 36);
+    camera.position.set(5.5, 6, 34);
     
     renderer = new THREE.WebGLRenderer({
         antialias: true
@@ -53,7 +53,7 @@ function initScene() {
                 monkey.position.z = 2;
                 monkey.position.x = 2;
                 monkey.position.y = 2;
-                monkey.scale.setScalar(0.6);
+                monkey.scale.setScalar(PLAYER_RADIUS);
             }
         })
         scene.add(gltf.scene);
@@ -115,8 +115,8 @@ function setupInput(canvas) {
         const position = getWorldPosition(e, 2);
         if (!effectLine) return;
         if (!effectLine.visible) return;
-        velocityX = -(position.x - previous.x) / 6;
-        velocityY = -(position.y - previous.y) / 6;
+        velocityX = -(position.x - previous.x) / 10;
+        velocityY = -(position.y - previous.y) / 10;
     });
 
     canvas.addEventListener("pointerleave", (e) => {
@@ -384,10 +384,10 @@ function createTunnel(contour, depth) {
     const indices = [];
     const n = contour.length;
     for (const [x, y] of contour) {
-        positions.push(x, y, depth);
+        positions.push(x, y, 0);
     }
     for (const [x, y] of contour) {
-        positions.push(x, y, 0);
+        positions.push(x, y, depth);
     }
     for (let i = 0; i < n; i++) {
         const next = (i + 1) % n;
@@ -404,11 +404,7 @@ function createTunnel(contour, depth) {
     );
     const triangles = THREE.ShapeUtils.triangulateShape(points, []);
     for (const [a, b, c] of triangles) {
-        indices.push(
-            n + a,
-            n + b,
-            n + c
-        );
+        indices.push(a, b, c);
     }
     const backIndexCount = indices.length - wallIndexCount;
     const geometry = new THREE.BufferGeometry();
@@ -504,7 +500,7 @@ function animate() {
         if (monkey) {
             movePlayer(velocityX, velocityY)
             monkey.rotation.y += velocityX;
-            cameraVelocityY = (camera.position.y - monkey.position.y) * 0.1;
+            cameraVelocityY = (camera.position.y - monkey.position.y) * 0.08;
         }
         velocityY -= 0.01;
         cameraVelocityY *= 0.8;
@@ -541,18 +537,15 @@ const contour = contours[0];
 const geometry = createTunnel(contour, 4)
 const wallmaterial = new THREE.MeshBasicMaterial({
     color: 0x2c4999,
-    side: THREE.FrontSide
+    side: THREE.BackSide
 });
 const backMaterial = new THREE.MeshBasicMaterial({
     color: 0x0b193f,
-    side: THREE.DoubleSide
+    side: THREE.FrontSide
 });
 const tunnel = new THREE.Mesh(
     geometry,
-    [
-        wallmaterial,
-        backMaterial
-    ]
+    [wallmaterial, backMaterial]
 );
 scene.add(tunnel);
 
