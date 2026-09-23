@@ -14,16 +14,16 @@ let velocityX = 0;
 let velocityY = 0;
 let cameraVelocityY = 0;
 
+let stoppedFrames = 0;
+
 let isDragging = false;
 let isMoving = false;
-let previousX = 0;
-let previousY = 0;
+let previous;
+
+let effectLine;
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
-
-let effectLine;
-let previous;
 
 function initScene() {
     scene = new THREE.Scene();
@@ -62,6 +62,7 @@ function initScene() {
 
 function setupInput(canvas) {
     canvas.addEventListener("pointerdown", (e) => {
+        if (isMoving) return;
         const position = getWorldPosition(e, 2);
         const distance = Math.hypot(
             position.x - monkey.position.x,
@@ -94,9 +95,13 @@ function setupInput(canvas) {
             end.x - start.x,
             end.y - start.y
         )
-        if (length === 0) return;
+        if (length < 4) {
+            if (effectLine) effectLine.visible = false;
+            return;
+        }
         if (effectLine) {
             updateEffectLine(effectLine, start, end, 0.3);
+            effectLine.visible = true;
         } else {
             effectLine = createEffectLine(start, end, 0.3, 0xbbbbbb);
         }
@@ -105,11 +110,13 @@ function setupInput(canvas) {
     canvas.addEventListener("pointerup", (e) => {
         if (!isDragging) return;
         isDragging = false;
+        isMoving = true;
         removeEffectLine(effectLine);
         const position = getWorldPosition(e, 2);
+        if (!effectLine) return;
+        if (!effectLine.visible) return;
         velocityX = -(position.x - previous.x) / 6;
         velocityY = -(position.y - previous.y) / 6;
-        isMoving = true;
     });
 
     canvas.addEventListener("pointerleave", (e) => {
@@ -478,12 +485,21 @@ function animate() {
             cameraVelocityY = (camera.position.y - monkey.position.y) * 0.1;
         }
         velocityY -= 0.01;
-        // velocityX *= 0.99;
-        // velocityY *= 0.99;
         cameraVelocityY *= 0.8;
         camera.position.y -= cameraVelocityY;
         if (camera.position.y < 6) {
             camera.position.y = 6;
+        }
+        if (Math.hypot(velocityX, velocityY) < 0.01) {
+            stoppedFrames++;
+            if (stoppedFrames >= 10) {
+                velocityX = 0;
+                velocityY = 0;
+                isMoving = false;
+                stoppedFrames = 0;
+            }
+        } else  {
+            stoppedFrames = 0;
         }
     }
     renderer.render(scene, camera);
