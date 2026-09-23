@@ -389,15 +389,6 @@ function createTunnel(contour, depth) {
     for (const [x, y] of contour) {
         positions.push(x, y, depth);
     }
-    for (let i = 0; i < n; i++) {
-        const next = (i + 1) % n;
-        const a = i;
-        const b = next;
-        const c = n + next;
-        const d = n + i;
-        indices.push(a, b, c);
-        indices.push(a, c, d);
-    }
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute(
         "position",
@@ -406,6 +397,22 @@ function createTunnel(contour, depth) {
             3
         )
     );
+    let indexStart = 0;
+    for (let i = 0; i < n; i++) {
+        const next = (i + 1) % n;
+        const a = i;
+        const b = next;
+        const c = n + next;
+        const d = n + i;
+        indices.push(a, b, c);
+        indices.push(a, c, d);
+        if (contour[a][1] === contour[b][1] || contour[a][0] === contour[b][0]) {
+            geometry.addGroup(indexStart, 6, 1)
+        } else {
+            geometry.addGroup(indexStart, 6, 0)
+        }
+        indexStart += 6;
+    }
     geometry.setIndex(indices);
     geometry.computeVertexNormals();
     return geometry;
@@ -538,13 +545,17 @@ const segments = marchingSquares(course.grid);
 const contours = connectSegments(segments);
 const contour = contours[0];
 const geometry = createTunnel(contour, 4)
-const material = new THREE.MeshBasicMaterial({
+const material0 = new THREE.MeshBasicMaterial({
     color: 0x2c4999,
+    side: THREE.BackSide
+});
+const material1 = new THREE.MeshBasicMaterial({
+    color: 0x233a7a,
     side: THREE.BackSide
 });
 const tunnel = new THREE.Mesh(
     geometry,
-    material
+    [material0, material1]
 );
 scene.add(tunnel);
 const outerWallGeometry = createOuterWall(
