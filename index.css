@@ -9,7 +9,11 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #17122b;
+
+    user-select: none;
+    -webkit-user-select: none;
+
+    background: #191529;
 }
 
 canvas {
