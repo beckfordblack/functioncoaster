@@ -393,7 +393,42 @@ function createTunnel(contour, depth) {
     return geometry;
 }
 
+function createEffectLine(start, end, width = 0.1, color = 0xffffff) {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
 
+    const length = Math.hypot(dx, dy);
+
+    // 線に垂直な単位ベクトル
+    const nx = -dy / length;
+    const ny = dx / length;
+
+    const half = width / 2;
+
+    const vertices = new Float32Array([
+        start.x + nx * half, start.y + ny * half, start.z,
+        start.x - nx * half, start.y - ny * half, start.z,
+        end.x   - nx * half, end.y   - ny * half, end.z,
+        end.x   + nx * half, end.y   + ny * half, end.z
+    ]);
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute(
+        "position",
+        new THREE.BufferAttribute(vertices, 3)
+    );
+
+    const material = new THREE.MeshBasicMaterial({
+        color,
+        side: THREE.DoubleSide
+    });
+
+    const mesh = new THREE.Mesh(geometry, material);
+
+    scene.add(mesh);
+
+    return mesh;
+}
 
 function updateEffectLine(line, start, end) {
     const positions = line.geometry.attributes.position.array;
