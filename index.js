@@ -35,7 +35,7 @@ function initScene() {
         0.1,
         1000
     );
-    camera.position.set(5.5, 8, 36);
+    camera.position.set(5.5, 6, 36);
     
     renderer = new THREE.WebGLRenderer({
         antialias: true
@@ -67,7 +67,7 @@ function setupInput(canvas) {
             position.x - monkey.position.x,
             position.y - monkey.position.y
         )
-        if (distance < 1) {
+        if (distance < 3) {
             isDragging = true;
             previous = {
                 x: monkey.position.x,
@@ -87,7 +87,7 @@ function setupInput(canvas) {
         }
         const end = {
             x: position.x,
-            y:position.y,
+            y: position.y,
             z: 2
         }
         const length = Math.hypot(
@@ -96,9 +96,9 @@ function setupInput(canvas) {
         )
         if (length === 0) return;
         if (effectLine) {
-            updateEffectLine(effectLine, start, end, 0.1);
+            updateEffectLine(effectLine, start, end, 0.3);
         } else {
-            effectLine = createEffectLine(start, end, 0.1, 0xffffff);
+            effectLine = createEffectLine(start, end, 0.3, 0xbbbbbb);
         }
     });
 
@@ -248,8 +248,8 @@ function movePlayer(moveX, moveY) {
     monkey.position.x = hit.x;
     monkey.position.y = hit.y;
     const dot = moveX * hit.nx + moveY * hit.ny;
-    velocityX = (moveX - 2 * dot * hit.nx) * 0.6;
-    velocityY = (moveY - 2 * dot * hit.ny) * 0.6;
+    velocityX = (moveX - 2 * dot * hit.nx) * 0.5;
+    velocityY = (moveY - 2 * dot * hit.ny) * 0.5;
 }
 
 function marchingSquares(grid) {
@@ -451,6 +451,7 @@ function updateEffectLine(mesh, start, end, width) {
 }
 
 function removeEffectLine(line) {
+    if (!line) return;
     scene.remove(line);
     line.geometry.dispose();
     line.material.dispose();
@@ -476,15 +477,13 @@ function animate() {
             monkey.rotation.y += velocityX;
             cameraVelocityY = (camera.position.y - monkey.position.y) * 0.1;
         }
-        velocityX *= 0.99;
-        velocityY *= 0.99;
         velocityY -= 0.01;
-
+        // velocityX *= 0.99;
+        // velocityY *= 0.99;
         cameraVelocityY *= 0.8;
         camera.position.y -= cameraVelocityY;
-
-        if (camera.position.y < 8) {
-            camera.position.y = 8;
+        if (camera.position.y < 6) {
+            camera.position.y = 6;
         }
     }
     renderer.render(scene, camera);
@@ -504,28 +503,13 @@ const contour = contours[0];
 const geometry = createTunnel(contour, 4)
 const material = new THREE.ShaderMaterial({
     vertexShader: `
-        varying vec3 vNormal;
-
         void main() {
-            vNormal = normal;
             gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
     `,
     fragmentShader: `
-        varying vec3 vNormal;
-
         void main() {
-            vec3 darkColor = vec3(0.15, 0.25, 0.4);
-            vec3 lightColor = vec3(0.2, 0.6, 0.5);
-
-            float brightness =
-                dot(normalize(vNormal), vec3(0.0, -1.0, 0.0));
-
-            float t = smoothstep(
-                0.4, 0.6, brightness);
-
-            vec3 color = mix(darkColor, lightColor, t);
-            gl_FragColor = vec4(color, 1.0);
+            gl_FragColor = vec4(0.15, 0.25, 0.4, 1.0);
         }
     `,
     side: THREE.BackSide
