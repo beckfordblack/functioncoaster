@@ -394,51 +394,47 @@ function createTunnel(contour, depth) {
 }
 
 function createEffectLine(start, end, width = 0.1, color = 0xffffff) {
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-
-    const length = Math.hypot(dx, dy);
-
-    // 線に垂直な単位ベクトル
-    const nx = -dy / length;
-    const ny = dx / length;
-
-    const half = width / 2;
-
-    const vertices = new Float32Array([
-        start.x + nx * half, start.y + ny * half, start.z,
-        start.x - nx * half, start.y - ny * half, start.z,
-        end.x   - nx * half, end.y   - ny * half, end.z,
-        end.x   + nx * half, end.y   + ny * half, end.z
-    ]);
-
     const geometry = new THREE.BufferGeometry();
+    const vertices = new Float32Array(12);
     geometry.setAttribute(
         "position",
         new THREE.BufferAttribute(vertices, 3)
     );
-
+    geometry.setIndex([
+        0, 1, 2,
+        0, 2, 3
+    ]);
     const material = new THREE.MeshBasicMaterial({
         color,
         side: THREE.DoubleSide
     });
-
     const mesh = new THREE.Mesh(geometry, material);
-
+    updateEffectLine(mesh, start, end , width);
     scene.add(mesh);
-
     return mesh;
 }
 
-function updateEffectLine(line, start, end) {
-    const positions = line.geometry.attributes.position.array;
-    positions[0] = start.x;
-    positions[1] = start.y;
-    positions[2] = start.z;
-    positions[3] = end.x;
-    positions[4] = end.y;
-    positions[5] = end.z;
-    line.geometry.attributes.position.needsUpdate = true;
+function updateEffectLine(mesh, start, end, width) {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const length = Math.hypot(dx, dy);
+    const nx = -dy / length;
+    const ny = dx / length;
+    const half = width / 2;
+    const positions = mesh.geometry.attributes.position.array;
+    positions[0]  = start.x + nx * half;
+    positions[1]  = start.y + ny * half;
+    positions[2]  = start.z;
+    positions[3]  = start.x - nx * half;
+    positions[4]  = start.y - ny * half;
+    positions[5]  = start.z;
+    positions[6]  = end.x - nx * half;
+    positions[7]  = end.y - ny * half;
+    positions[8]  = end.z
+    positions[9]  = end.x + nx * half;
+    positions[10] = end.y + ny * half;
+    positions[11] = end.z;
+    mesh.geometry.attributes.position.needsUpdate = true;
 }
 
 function removeEffectLine(line) {
