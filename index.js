@@ -57,28 +57,24 @@ function createWalls(grid) {
     for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
             if (grid[y][x] !== 1) continue;
-            // 上
             if (y === 0 || grid[y - 1][x] === 0) {
                 walls.push([
                     [x, y],
                     [x + 1, y]
                 ]);
             }
-            // 下
             if (y === h - 1 || grid[y + 1][x] === 0) {
                 walls.push([
                     [x, y + 1],
                     [x + 1, y + 1]
                 ]);
             }
-            // 左
             if (x === 0 || grid[y][x - 1] === 0) {
                 walls.push([
                     [x, y],
                     [x, y + 1]
                 ]);
             }
-            // 右
             if (x === w - 1 || grid[y][x + 1] === 0) {
                 walls.push([
                     [x + 1, y],
@@ -125,7 +121,8 @@ function findCollision(start, end, radius) {
             wall[0],
             wall[1]
         );
-        if (hit && hit.t < nearestT) {
+        if (!hit) continue;
+        if (hit.t < nearestT) {
             nearestT = hit.t;
             nearest = hit;
         }
@@ -136,114 +133,51 @@ function findCollision(start, end, radius) {
 function sweepCircle(start, end, radius, a, b) {
     const dx = end.x - start.x;
     const dy = end.y - start.y;
-
-    let best = null;
-
-    function setHit(t, x, y, nx, ny) {
-        if (t < 0 || t > 1) return;
-
-        if (!best || t < best.t) {
-            best = { x, y, t, nx, ny };
-        }
-    }
-
-    // ----------------
-    // 壁そのもの
-    // ----------------
-
     if (a[1] === b[1]) {
         const y = a[1];
         const minX = Math.min(a[0], b[0]);
         const maxX = Math.max(a[0], b[0]);
-
         if (dy !== 0) {
-            const side = start.y < y ? -1 : 1;
+            const side = dy > 0 ? -1 : 1;
             const targetY = y + side * radius;
             const t = (targetY - start.y) / dy;
-
             if (t >= 0 && t <= 1) {
                 const x = start.x + dx * t;
-
-                if (x >= minX && x <= maxX) {
-                    setHit(t, x, targetY, 0, side);
+                if (x >= minX - radius && x <= maxX + radius) {
+                    return {
+                        t,
+                        x,
+                        y: targetY,
+                        nx: 0,
+                        ny: side
+                    };
                 }
             }
         }
     }
-
     else if (a[0] === b[0]) {
         const x = a[0];
         const minY = Math.min(a[1], b[1]);
         const maxY = Math.max(a[1], b[1]);
-
         if (dx !== 0) {
-            const side = start.x < x ? -1 : 1;
+            const side = dx > 0 ? -1 : 1;
             const targetX = x + side * radius;
             const t = (targetX - start.x) / dx;
-
             if (t >= 0 && t <= 1) {
                 const y = start.y + dy * t;
-
-                if (y >= minY && y <= maxY) {
-                    setHit(t, targetX, y, side, 0);
+                if (y >= minY - radius && y <= maxY + radius) {
+                    return{
+                        t,
+                        x: targetX,
+                        y,
+                        nx: side,
+                        ny: 0
+                    };
                 }
             }
         }
     }
-
-    // ----------------
-    // 端点
-    // ----------------
-
-    for (const p of [a, b]) {
-        const ox = start.x - p[0];
-        const oy = start.y - p[1];
-
-        const A = dx * dx + dy * dy;
-        if (A === 0) continue;
-
-        const B = 2 * (ox * dx + oy * dy);
-        const C = ox * ox + oy * oy - radius * radius;
-
-        const D = B * B - 4 * A * C;
-        if (D < 0) continue;
-
-        const sqrtD = Math.sqrt(D);
-
-        const t1 = (-B - sqrtD) / (2 * A);
-        const t2 = (-B + sqrtD) / (2 * A);
-
-        let t = Infinity;
-
-        if (t1 >= 0 && t1 <= 1) {
-            t = t1;
-        }
-
-        if (t2 >= 0 && t2 <= 1 && t2 < t) {
-            t = t2;
-        }
-
-        if (t === Infinity) continue;
-
-        const x = start.x + dx * t;
-        const y = start.y + dy * t;
-
-        const nx = x - p[0];
-        const ny = y - p[1];
-        const length = Math.hypot(nx, ny);
-
-        if (length === 0) continue;
-
-        setHit(
-            t,
-            x,
-            y,
-            nx / length,
-            ny / length
-        );
-    }
-
-    return best;
+    return null;
 }
 
 function animate() {
@@ -449,7 +383,7 @@ const tunnel = new THREE.Mesh(
 );
 scene.add(tunnel);
 
-const PLAYER_RADIUS = 0.5;
+const PLAYER_RADIUS = 0.6;
 
 let dx = 0;
 let dy = 0;
