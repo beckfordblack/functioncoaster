@@ -6,7 +6,7 @@ const course = await response.json();
 
 const GAME_WIDTH = 1080;
 const GAME_HEIGHT = 1920;
-const PLAYER_RADIUS = 0.3;
+const PLAYER_RADIUS = 0.5;
 
 let scene, camera, renderer, canvas, monkey;
 
@@ -27,7 +27,7 @@ const pointer = new THREE.Vector2();
 
 function initScene() {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x202020);
+    scene.background = new THREE.Color(0x43efff);
     
     camera = new THREE.PerspectiveCamera(
         35,
@@ -546,11 +546,11 @@ const contours = connectSegments(segments);
 const contour = contours[0];
 const geometry = createTunnel(contour, 4)
 const material0 = new THREE.MeshBasicMaterial({
-    color: 0x2c4999,
+    color: 0x2c89d9,
     side: THREE.BackSide
 });
 const material1 = new THREE.MeshBasicMaterial({
-    color: 0x233a7a,
+    color: 0x236aaa,
     side: THREE.BackSide
 });
 const tunnel = new THREE.Mesh(
@@ -567,7 +567,7 @@ const outerWallGeometry = createOuterWall(
     4
 );
 const outerWallMaterial = new THREE.MeshBasicMaterial({
-    color: 0x0b193f,
+    color: 0x121f3f,
     side: THREE.DoubleSide
 });
 const outerWall = new THREE.Mesh(
