@@ -10,19 +10,19 @@ const PLAYER_RADIUS = 0.6;
 
 let scene, camera, renderer, canvas, monkey;
 
-let dx = 0;
-let dy = 0;
-let camDy = 0;
+let velocityX = 0;
+let velocityY = 0;
+let cameraVelocityY = 0;
 
-let dragging = false;
-let moving = false;
+let isDragging = false;
+let isMoving = false;
 let previousX = 0;
 let previousY = 0;
 
 const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
+const pointer = new THREE.Vector2();
 
-function init() {
+function initScene() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x202020);
     
@@ -60,34 +60,34 @@ function init() {
 function setupInput(canvas) {
     canvas.addEventListener("pointerdown", (e) => {
         const rect = canvas.getBoundingClientRect();
-        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-        raycaster.setFromCamera(mouse, camera);
+        pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(pointer, camera);
         const hits = raycaster.intersectObjects(scene.children);
         if (hits.length === 0) return;
         if (hits[0].object) {
-            dragging = true;
+            isDragging = true;
             previousX = e.clientX;
             previousY = e.clientY;
         }
     });
 
     canvas.addEventListener("pointermove", (e) => {
-        if (!dragging || !monkey) return;
+        if (!isDragging || !monkey) return;
         const dx = e.clientX - previousX;
         const dy = e.clientY - previousY;
     });
 
     canvas.addEventListener("pointerup", (e) => {
-        if (!dragging) return;
-        dragging = false;
-        dx = -(e.clientX - previousX) / 100;
-        dy = (e.clientY - previousY) / 100;
-        moving = true;
+        if (!isDragging) return;
+        isDragging = false;
+        velocityX = -(e.clientX - previousX) / 100;
+        velocityY = (e.clientY - previousY) / 100;
+        isMoving = true;
     });
 
     canvas.addEventListener("pointerleave", (e) => {
-        dragging = false;
+        isDragging = false;
     });
 }
 
@@ -106,26 +106,26 @@ function createWalls(grid) {
             if (grid[y][x] !== 1) continue;
             if (y === 0 || grid[y - 1][x] === 0) {
                 walls.push([
-                    [x, y],
-                    [x + 1, y]
+                    [x - 0.5, y - 0.5],
+                    [x + 0.5, y - 0.5]
                 ]);
             }
             if (y === h - 1 || grid[y + 1][x] === 0) {
                 walls.push([
-                    [x, y + 1],
-                    [x + 1, y + 1]
+                    [x - 0.5, y + 0.5],
+                    [x + 0.5, y + 0.5]
                 ]);
             }
             if (x === 0 || grid[y][x - 1] === 0) {
                 walls.push([
-                    [x, y],
-                    [x, y + 1]
+                    [x - 0.5, y - 0.5],
+                    [x - 0.5, y + 0.5]
                 ]);
             }
             if (x === w - 1 || grid[y][x + 1] === 0) {
                 walls.push([
-                    [x + 1, y],
-                    [x + 1, y + 1]
+                    [x + 0.5, y - 0.5],
+                    [x + 0.5, y + 0.5]
                 ]);
             }
         }
@@ -136,7 +136,7 @@ function createWalls(grid) {
 function findCollision(start, end, radius) {
     let nearest = null;
     let nearestT = Infinity;
-    for (const wall of walls) {
+    for (const wall of collisionWalls) {
         const hit = sweepCircle(
             start,
             end,
@@ -221,8 +221,8 @@ function movePlayer(moveX, moveY) {
     monkey.position.x = hit.x;
     monkey.position.y = hit.y;
     const dot = moveX * hit.nx + moveY * hit.ny;
-    dx = (moveX - 2 * dot * hit.nx) * 0.6;
-    dy = (moveY - 2 * dot * hit.ny) * 0.6;
+    velocityX = (moveX - 2 * dot * hit.nx) * 0.6;
+    velocityY = (moveY - 2 * dot * hit.ny) * 0.6;
 }
 
 function marchingSquares(grid) {
@@ -380,23 +380,18 @@ function createTunnel(contour, depth) {
 
 function animate() {
     requestAnimationFrame(animate);   
-    if (moving) {
+    if (isMoving) {
         if (monkey) {
-            monkey.position.x += 0.5;
-            monkey.position.y += 0.5;
-            movePlayer(dx, dy)
-            monkey.position.x -= 0.5;
-            monkey.position.y -= 0.5;
-            monkey.rotation.y += dx;
-
-            camDy = (camera.position.y - monkey.position.y) * 0.1;
+            movePlayer(velocityX, velocityY)
+            monkey.rotation.y += velocityX;
+            cameraVelocityY = (camera.position.y - monkey.position.y) * 0.1;
         }
-        dx *= 0.99;
-        dy *= 0.99;
-        dy -= 0.01;
+        velocityX *= 0.99;
+        velocityY *= 0.99;
+        velocityY -= 0.01;
 
-        camDy *= 0.8;
-        camera.position.y -= camDy;
+        cameraVelocityY *= 0.8;
+        camera.position.y -= cameraVelocityY;
 
         if (camera.position.y < 8) {
             camera.position.y = 8;
@@ -405,13 +400,13 @@ function animate() {
     renderer.render(scene, camera);
 }
 
-init();
+initScene();
 setupInput(canvas);
 
 resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
 
-const walls = createWalls(course.grid);
+const collisionWalls = createWalls(course.grid);
 
 const segments = marchingSquares(course.grid);
 const contours = connectSegments(segments);
