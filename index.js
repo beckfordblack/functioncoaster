@@ -73,21 +73,33 @@ function setupInput(canvas) {
                 x: monkey.position.x,
                 y: monkey.position.y
             }
-            effectLine = createEffectLine(
-                {x: previous.x, y: previous.y, z: 2},
-                {x: previous.x, y: previous.y, z: 2}
-            )
+            effectLine  = null;
         }
     });
 
     canvas.addEventListener("pointermove", (e) => {
         if (!isDragging || !monkey) return;
         const position = getWorldPosition(e, 2);
-        updateEffectLine(
-            effectLine,
-            {x: previous.x * 2 - position.x, y: previous.y * 2 - position.y, z: 2},
-            {x: position.x, y:position.y, z: 2}
-        );
+        const start = {
+            x: previous.x * 2 - position.x,
+            y: previous.y * 2 - position.y,
+            z: 2
+        }
+        const end = {
+            x: position.x,
+            y:position.y,
+            z: 2
+        }
+        const length = Math.hypot(
+            end.x - start.x,
+            end.y - start.y
+        )
+        if (length === 0) return;
+        if (effectLine) {
+            updateEffectLine(effectLine, start, end, 0.1);
+        } else {
+            effectLine = createEffectLine(start, end, 0.1, 0xffffff);
+        }
     });
 
     canvas.addEventListener("pointerup", (e) => {
@@ -393,7 +405,7 @@ function createTunnel(contour, depth) {
     return geometry;
 }
 
-function createEffectLine(start, end, width = 0.1, color = 0xffffff) {
+function createEffectLine(start, end, width, color) {
     const geometry = new THREE.BufferGeometry();
     const vertices = new Float32Array(12);
     geometry.setAttribute(
@@ -418,6 +430,7 @@ function updateEffectLine(mesh, start, end, width) {
     const dx = end.x - start.x;
     const dy = end.y - start.y;
     const length = Math.hypot(dx, dy);
+    if (length === 0)  return;
     const nx = -dy / length;
     const ny = dx / length;
     const half = width / 2;
