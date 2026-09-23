@@ -413,7 +413,7 @@ const contours = connectSegments(segments);
 const contour = contours[0];
 const geometry = createTunnel(contour, 4)
 const material = new THREE.MeshNormalMaterial({
-    side: THREE.DoubleSide
+    side: THREE.BackSide
 });
 const tunnel = new THREE.Mesh(geometry, material);
 scene.add(tunnel);
