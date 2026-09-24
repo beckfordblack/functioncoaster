@@ -27,7 +27,7 @@ const pointer = new THREE.Vector2();
 
 function initScene() {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x43efff);
+    scene.background = new THREE.Color(0x43ffb8);
     
     camera = new THREE.PerspectiveCamera(
         35,
@@ -48,7 +48,9 @@ function initScene() {
     loader.load("monkey.glb", (gltf) => {
         gltf.scene.traverse((object) => {
             if (object.isMesh) {
-                object.material = new THREE.MeshNormalMaterial()
+                object.material = new THREE.MeshBasicMaterial({
+                    color: 0x006d6d
+                })
                 monkey = object;
                 monkey.position.z = 2;
                 monkey.position.x = 2;
@@ -103,7 +105,7 @@ function setupInput(canvas) {
             updateEffectLine(effectLine, start, end, 0.3);
             effectLine.visible = true;
         } else {
-            effectLine = createEffectLine(start, end, 0.3, 0xbbbbbb);
+            effectLine = createEffectLine(start, end, 0.3, 0xddddddd);
         }
     });
 
@@ -546,11 +548,11 @@ const contours = connectSegments(segments);
 const contour = contours[0];
 const geometry = createTunnel(contour, 4)
 const material0 = new THREE.MeshBasicMaterial({
-    color: 0x2c89d9,
+    color: 0x2ca6d9,
     side: THREE.BackSide
 });
 const material1 = new THREE.MeshBasicMaterial({
-    color: 0x236aaa,
+    color: 0x2381aa,
     side: THREE.BackSide
 });
 const tunnel = new THREE.Mesh(
@@ -567,7 +569,7 @@ const outerWallGeometry = createOuterWall(
     4
 );
 const outerWallMaterial = new THREE.MeshBasicMaterial({
-    color: 0x121f3f,
+    color: 0x112273f,
     side: THREE.DoubleSide
 });
 const outerWall = new THREE.Mesh(
