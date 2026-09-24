@@ -64,7 +64,7 @@ function initScene() {
 
 function setupInput(canvas) {
     canvas.addEventListener("pointerdown", (e) => {
-        if (isMoving) return;
+        if (isDragging || isMoving) return;
         const position = getWorldPosition(e, 2);
         const distance = Math.hypot(
             position.x - monkey.position.x,
